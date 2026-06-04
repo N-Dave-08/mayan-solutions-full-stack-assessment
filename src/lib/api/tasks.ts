@@ -23,6 +23,22 @@ export const toggleTask = async (id: string) => {
   return result.data;
 };
 
+export const updateTaskStatus = async (
+  id: string,
+  status: "active" | "inactive",
+) => {
+  const res = await fetch(`/api/tasks/${id}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ status }),
+  });
+
+  if (!res.ok) throw new Error("Failed to update status");
+
+  const result = await res.json();
+  return result.data;
+};
+
 export const deleteTask = async (id: string) => {
   const res = await fetch(`/api/tasks/${id}`, {
     method: "DELETE",

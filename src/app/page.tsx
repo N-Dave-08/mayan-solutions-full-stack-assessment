@@ -3,19 +3,24 @@
 import { CirclePlus, SquarePen, Trash } from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTaskStore } from "@/lib/store/useTaskStore";
-import { deleteTask, getTasks, toggleTask } from "./api/tasks";
+import {
+  deleteTask,
+  getTasks,
+  toggleTask,
+  updateTaskStatus,
+} from "@/lib/api/tasks";
 
 export default function Home() {
   const queryClient = useQueryClient();
   const { filter, setFilter } = useTaskStore();
 
-  // ✅ SERVER STATE
+  //  SERVER STATE
   const { data: tasks = [], isLoading } = useQuery({
     queryKey: ["tasks"],
     queryFn: getTasks,
   });
 
-  // ✅ TOGGLE MUTATION
+  // TOGGLE MUTATION
   const toggleMutation = useMutation({
     mutationFn: toggleTask,
     onSuccess: () => {
@@ -23,9 +28,23 @@ export default function Home() {
     },
   });
 
-  // ✅ DELETE MUTATION
+  // DELETE MUTATION
   const deleteMutation = useMutation({
     mutationFn: deleteTask,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["tasks"] });
+    },
+  });
+
+  // STATUS MUTATION
+  const statusMutation = useMutation({
+    mutationFn: ({
+      id,
+      status,
+    }: {
+      id: string;
+      status: "active" | "inactive";
+    }) => updateTaskStatus(id, status),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["tasks"] });
     },
@@ -85,16 +104,20 @@ export default function Home() {
                   >
                     {task.title}
                   </strong>
-
-                  <div
-                    className={`ml-2 badge badge-sm ${
-                      task.status === "active"
-                        ? "badge-success"
-                        : "badge-secondary"
+                  <button
+                    className={`ml-2 btn btn-xs ${
+                      task.status === "active" ? "btn-success" : "btn-secondary"
                     }`}
+                    onClick={() =>
+                      statusMutation.mutate({
+                        id: task.id,
+                        status:
+                          task.status === "active" ? "inactive" : "active",
+                      })
+                    }
                   >
                     {task.status}
-                  </div>
+                  </button>
                 </div>
 
                 <p className="list-col-wrap">{task.description}</p>
