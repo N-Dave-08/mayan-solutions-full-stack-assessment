@@ -12,6 +12,8 @@ export const createTaskSchema = z.object({
     .trim()
     .max(1000, "Description must not exceed 1000 characters")
     .optional(),
+  status: z.enum(["active", "inactive"]).optional(),
+  isCompleted: z.boolean().optional(),
 });
 
 export const updateTaskSchema = z.object({
