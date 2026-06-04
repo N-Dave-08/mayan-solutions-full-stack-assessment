@@ -2,6 +2,12 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/prisma";
 import { createTaskSchema } from "@/lib/validations/task";
 
+type TaskStatus = "active" | "inactive";
+
+const isValidStatus = (value: string | null): value is TaskStatus => {
+  return value === "active" || value === "inactive";
+};
+
 export async function GET(req: NextRequest) {
   try {
     const searchParams = req.nextUrl.searchParams;
@@ -9,6 +15,8 @@ export async function GET(req: NextRequest) {
     const search = searchParams.get("search");
     const status = searchParams.get("status");
     const completed = searchParams.get("completed");
+
+    const validStatus = isValidStatus(status) ? status : undefined;
 
     const tasks = await db.task.findMany({
       where: {
@@ -19,15 +27,15 @@ export async function GET(req: NextRequest) {
           },
         }),
 
-        ...(status && {
-          status,
+        ...(validStatus && {
+          status: validStatus,
         }),
 
-        ...(completed && {
-          isCompleted: completed === "true",
-        }),
+        ...(completed !== null &&
+          completed !== undefined && {
+            isCompleted: completed === "true",
+          }),
       },
-
       orderBy: {
         createdAt: "desc",
       },
@@ -48,15 +56,7 @@ export async function POST(request: Request) {
   try {
     const body = await request.json();
 
-    // const { title, description } = body;
     const validationResult = createTaskSchema.safeParse(body);
-
-    // if (!title?.trim()) {
-    //   return NextResponse.json(
-    //     { message: "Title is required" },
-    //     { status: 400 },
-    //   );
-    // }
 
     if (!validationResult.success) {
       return NextResponse.json(
@@ -70,12 +70,14 @@ export async function POST(request: Request) {
       );
     }
 
-    const { title, description } = validationResult.data;
+    const { title, description, status, isCompleted } = validationResult.data;
 
     const task = await db.task.create({
       data: {
         title,
         description,
+        status: status ?? "active",
+        isCompleted: isCompleted ?? false,
       },
     });
 

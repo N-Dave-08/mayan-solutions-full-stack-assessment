@@ -11,6 +11,10 @@ jest.mock("@/lib/prisma", () => ({
   },
 }));
 
+beforeAll(() => {
+  jest.spyOn(console, "error").mockImplementation(() => {});
+});
+
 describe("/api/tasks/[id]", () => {
   beforeEach(() => {
     jest.clearAllMocks();
