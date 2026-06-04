@@ -1,8 +1,8 @@
 "use client";
 
-import { CirclePlus, SquarePen, Trash } from "lucide-react";
+import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useTaskStore } from "@/lib/store/useTaskStore";
+
 import {
   deleteTask,
   getTasks,
@@ -10,33 +10,50 @@ import {
   updateTaskStatus,
 } from "@/lib/api/tasks";
 
+import { useTaskStore } from "@/lib/store/useTaskStore";
+
+import TaskList from "@/components/task-list";
+import TaskSearch from "@/components/task-search";
+import TaskFilters from "@/components/task-filters";
+
 export default function Home() {
   const queryClient = useQueryClient();
-  const { filter, setFilter } = useTaskStore();
 
-  //  SERVER STATE
+  const { filter, search } = useTaskStore();
+
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      setDebouncedSearch(search);
+    }, 500);
+
+    return () => clearTimeout(timeout);
+  }, [search]);
+
   const { data: tasks = [], isLoading } = useQuery({
-    queryKey: ["tasks"],
-    queryFn: getTasks,
+    queryKey: ["tasks", debouncedSearch],
+    queryFn: () => getTasks(debouncedSearch),
   });
 
-  // TOGGLE MUTATION
   const toggleMutation = useMutation({
     mutationFn: toggleTask,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["tasks"] });
+      queryClient.invalidateQueries({
+        queryKey: ["tasks"],
+      });
     },
   });
 
-  // DELETE MUTATION
   const deleteMutation = useMutation({
     mutationFn: deleteTask,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["tasks"] });
+      queryClient.invalidateQueries({
+        queryKey: ["tasks"],
+      });
     },
   });
 
-  // STATUS MUTATION
   const statusMutation = useMutation({
     mutationFn: ({
       id,
@@ -45,8 +62,11 @@ export default function Home() {
       id: string;
       status: "active" | "inactive";
     }) => updateTaskStatus(id, status),
+
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["tasks"] });
+      queryClient.invalidateQueries({
+        queryKey: ["tasks"],
+      });
     },
   });
 
@@ -54,10 +74,13 @@ export default function Home() {
     switch (filter) {
       case "active":
         return task.status === "active";
+
       case "inactive":
         return task.status === "inactive";
+
       case "completed":
         return task.isCompleted;
+
       default:
         return true;
     }
@@ -65,80 +88,24 @@ export default function Home() {
 
   return (
     <main>
-      <div className="flex flex-col gap-4 m-10">
+      <div className="m-10 flex flex-col gap-4">
         <h2 className="font-semibold">Task Management</h2>
 
-        {/* FILTER (ZUSTAND) */}
-        <div role="tablist" className="tabs tabs-box">
-          {(["all", "active", "inactive", "completed"] as const).map((item) => (
-            <button
-              key={item}
-              role="tab"
-              className={`tab ${filter === item ? "tab-active" : ""}`}
-              onClick={() => setFilter(item)}
-            >
-              {item.charAt(0).toUpperCase() + item.slice(1)}
-            </button>
-          ))}
-        </div>
+        <TaskSearch />
 
-        {/* LOADING */}
+        <TaskFilters />
+
         {isLoading ? (
           <p className="opacity-60">Loading tasks...</p>
         ) : (
-          <ul className="list bg-base-100 rounded-box shadow-md">
-            {filteredTasks.map((task) => (
-              <li key={task.id} className="list-row">
-                <input
-                  type="checkbox"
-                  className="checkbox"
-                  checked={task.isCompleted}
-                  onChange={() => toggleMutation.mutate(task.id)}
-                />
-
-                <div>
-                  <strong
-                    className={
-                      task.isCompleted ? "line-through opacity-60" : ""
-                    }
-                  >
-                    {task.title}
-                  </strong>
-                  <button
-                    className={`ml-2 btn btn-xs ${
-                      task.status === "active" ? "btn-success" : "btn-secondary"
-                    }`}
-                    onClick={() =>
-                      statusMutation.mutate({
-                        id: task.id,
-                        status:
-                          task.status === "active" ? "inactive" : "active",
-                      })
-                    }
-                  >
-                    {task.status}
-                  </button>
-                </div>
-
-                <p className="list-col-wrap">{task.description}</p>
-
-                <button className="btn btn-square btn-ghost">
-                  <CirclePlus />
-                </button>
-
-                <button className="btn btn-square btn-ghost">
-                  <SquarePen />
-                </button>
-
-                <button
-                  className="btn btn-square btn-ghost"
-                  onClick={() => deleteMutation.mutate(task.id)}
-                >
-                  <Trash />
-                </button>
-              </li>
-            ))}
-          </ul>
+          <TaskList
+            tasks={filteredTasks}
+            onToggle={(id) => toggleMutation.mutate(id)}
+            onDelete={(id) => deleteMutation.mutate(id)}
+            onStatusChange={(id, status) =>
+              statusMutation.mutate({ id, status })
+            }
+          />
         )}
       </div>
     </main>

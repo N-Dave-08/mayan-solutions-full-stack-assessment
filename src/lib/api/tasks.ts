@@ -6,9 +6,19 @@ export interface Task {
   isCompleted: boolean;
 }
 
-export const getTasks = async (): Promise<Task[]> => {
-  const res = await fetch("/api/tasks");
-  if (!res.ok) throw new Error("Failed to fetch tasks");
+export const getTasks = async (search?: string): Promise<Task[]> => {
+  const params = new URLSearchParams();
+
+  if (search) {
+    params.set("search", search);
+  }
+
+  const res = await fetch(`/api/tasks?${params.toString()}`);
+
+  if (!res.ok) {
+    throw new Error("Failed to fetch tasks");
+  }
+
   return res.json();
 };
 
