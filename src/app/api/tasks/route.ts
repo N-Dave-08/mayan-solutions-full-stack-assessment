@@ -1,9 +1,33 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/prisma";
+import { createTaskSchema } from "@/lib/validations/task";
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   try {
+    const searchParams = req.nextUrl.searchParams;
+
+    const search = searchParams.get("search");
+    const status = searchParams.get("status");
+    const completed = searchParams.get("completed");
+
     const tasks = await db.task.findMany({
+      where: {
+        ...(search && {
+          title: {
+            contains: search,
+            mode: "insensitive",
+          },
+        }),
+
+        ...(status && {
+          status,
+        }),
+
+        ...(completed && {
+          isCompleted: completed === "true",
+        }),
+      },
+
       orderBy: {
         createdAt: "desc",
       },
@@ -24,14 +48,29 @@ export async function POST(request: Request) {
   try {
     const body = await request.json();
 
-    const { title, description } = body;
+    // const { title, description } = body;
+    const validationResult = createTaskSchema.safeParse(body);
 
-    if (!title?.trim()) {
+    // if (!title?.trim()) {
+    //   return NextResponse.json(
+    //     { message: "Title is required" },
+    //     { status: 400 },
+    //   );
+    // }
+
+    if (!validationResult.success) {
       return NextResponse.json(
-        { message: "Title is required" },
-        { status: 400 },
+        {
+          success: false,
+          errors: validationResult.error.flatten().fieldErrors,
+        },
+        {
+          status: 400,
+        },
       );
     }
+
+    const { title, description } = validationResult.data;
 
     const task = await db.task.create({
       data: {

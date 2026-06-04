@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/prisma";
+import { updateTaskSchema } from "@/lib/validations/task";
 
 // Consolidate the type parameter definition for both async route handlers
 interface RouteContext {
@@ -14,28 +15,68 @@ export async function PATCH(req: Request, { params }: RouteContext) {
     const { id } = await params;
 
     const body = await req.json();
-    const { title, description, isCompleted, status } = body;
+    // const { title, description, isCompleted, status } = body;
+
+    const validationResult = updateTaskSchema.safeParse(body);
 
     // 2. Now 'id' is guaranteed to be a valid string, satisfying Prisma's uniquely identifiable index
-    const updatedTask = await db.task.update({
-      where: {
-        id,
-      },
-      data: {
-        ...(title !== undefined && { title }),
-        ...(description !== undefined && { description }),
-        ...(isCompleted !== undefined && { isCompleted }),
-        ...(status !== undefined && { status }),
-      },
+    // const updatedTask = await db.task.update({
+    //   where: {
+    //     id,
+    //   },
+    //   data: {
+    //     ...(title !== undefined && { title }),
+    //     ...(description !== undefined && { description }),
+    //     ...(isCompleted !== undefined && { isCompleted }),
+    //     ...(status !== undefined && { status }),
+    //   },
+    // });
+
+    if (!validationResult.success) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: validationResult.error.flatten().fieldErrors,
+        },
+        {
+          status: 400,
+        },
+      );
+    }
+
+    const existingTask = await db.task.findUnique({
+      where: { id },
     });
 
-    return NextResponse.json(updatedTask);
+    if (!existingTask) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: "Task not found",
+        },
+        {
+          status: 404,
+        },
+      );
+    }
+
+    const updatedTask = await db.task.update({
+      where: { id },
+      data: validationResult.data,
+    });
+
+    return NextResponse.json({ success: true, data: updatedTask });
   } catch (error) {
     console.error("PATCH Task Error:", error);
 
     return NextResponse.json(
-      { message: "Failed to update task" },
-      { status: 500 },
+      {
+        success: false,
+        message: "Failed to update task",
+      },
+      {
+        status: 500,
+      },
     );
   }
 }
