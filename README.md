@@ -166,4 +166,3 @@ volumes:
 
 - Notes:
   - Ensure `DATABASE_URL` in your `.env` matches the container placeholders (replace with real values before running).
-  - I can add a `Dockerfile` and `docker-compose.yml` for fully containerized app + DB if you'd like.
