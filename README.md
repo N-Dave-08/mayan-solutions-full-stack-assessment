@@ -1,116 +1,114 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Mayan Solutions — Full Stack Assessment
 
-## Getting Started
+Opinionated README with clear setup, dependency, and run instructions for this Next.js + Prisma assessment project.
 
-First, run the development server:
+## Requirements
+
+- Node.js v18 or newer
+- pnpm (recommended) — npm or yarn will also work
+- PostgreSQL (or a compatible PG server) and a `DATABASE_URL` connection string
+
+## Quick start
+
+1. Clone the repo and change directory:
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+git clone <repo-url>
+cd mayan-solutions-full-stack-assessment
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
-
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
-
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
-
-## Assessment Setup
-
-**Prerequisites**
-
-- Node.js (v18+ recommended)
-- pnpm (or npm/yarn)
-- A PostgreSQL database and a `DATABASE_URL` connection string
-
-**Local setup**
-
-1. Install dependencies:
+2. Install dependencies:
 
 ```bash
 pnpm install
 ```
 
-2. Create a `.env` file with your Postgres connection string:
+3. Create a `.env` file in the project root with your Postgres connection string:
 
-```bash
+```env
 # Example .env
 DATABASE_URL=postgresql://user:password@localhost:5432/database
 ```
 
-3. Generate Prisma client:
+4. Generate the Prisma client and apply migrations:
 
 ```bash
 pnpm exec prisma generate
-```
-
-4. Apply database migrations (use `migrate deploy` to apply existing migrations non-interactively):
-
-```bash
 pnpm exec prisma migrate deploy
 ```
 
-If you are actively developing and want to run migrations interactively, you can use:
+Notes:
 
-```bash
-pnpm exec prisma migrate dev
-```
+- Use `pnpm exec prisma migrate dev` while actively developing to run migrations and update the shadow DB.
+- If you need seed data, add a seed script and run it after migrations.
 
-5. Start the development server:
+## Run the app
+
+- Development (hot-reload):
 
 ```bash
 pnpm dev
 ```
 
-**Build / Production**
+- Build for production:
 
 ```bash
 pnpm build
 pnpm start
 ```
 
+Open http://localhost:3000 in your browser during development.
+
 ## Tests
 
-This project includes unit tests for API routes and validation logic using Jest.
+This repository uses Jest for unit tests (API routes and validation logic).
 
-Run tests locally with:
+Run tests locally:
 
 ```bash
 pnpm exec jest --runInBand
 ```
 
-You can also run Jest via npx:
+## Linting & formatting
 
-```bash
-npx jest --runInBand
-```
-
-## Notes
-
-- Ensure `DATABASE_URL` is set before running the app or tests that hit the database.
-- If you want sample data for demoing, consider adding a small seed script using Prisma.
-- To lint the project:
+- Lint the project:
 
 ```bash
 pnpm exec eslint .
 ```
+
+Husky and lint-staged are configured to run on commits if set up.
+
+## Useful scripts
+
+- `pnpm dev` — run Next.js in development mode
+- `pnpm build` — create a production build
+- `pnpm start` — start the production server
+- `pnpm exec prisma generate` — (re)generate Prisma client
+- `pnpm exec prisma migrate deploy` — apply migrations
+
+(See `package.json` for the authoritative script list.)
+
+## Environment variables
+
+- `DATABASE_URL` — Postgres connection string used by Prisma
+
+Add other environment values as needed for external integrations.
+
+## Troubleshooting
+
+- If Prisma commands fail, ensure `DATABASE_URL` is correct and Postgres is running.
+- If TypeScript/build errors occur after changing Prisma schema, run `pnpm exec prisma generate`.
+
+## Contributing
+
+If you make changes, please run lint and tests before opening a PR:
+
+```bash
+pnpm exec eslint .
+pnpm exec jest --runInBand
+```
+
+---
+
+If you want, I can also add a small `pnpm` script for running tests (`test`) and one for generating/migrating the DB (`db:setup`). Would you like me to add those to `package.json` now?
