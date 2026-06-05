@@ -56,19 +56,21 @@ export default function TaskForm({ task, onSubmit, isLoading }: Props) {
         <option value="inactive">Inactive</option>
       </select>
 
-      <label className="label cursor-pointer justify-start gap-3">
-        <input
-          type="checkbox"
-          className="checkbox"
-          checked={isCompleted}
-          onChange={(e) => setIsCompleted(e.target.checked)}
-        />
-        <span>Completed</span>
-      </label>
+      <div className="flex justify-between">
+        <label className="label cursor-pointer justify-start gap-3">
+          <input
+            type="checkbox"
+            className="checkbox"
+            checked={isCompleted}
+            onChange={(e) => setIsCompleted(e.target.checked)}
+          />
+          <span>Completed</span>
+        </label>
 
-      <button type="submit" className="btn btn-primary" disabled={isLoading}>
-        {isLoading ? "Saving..." : "Save Changes"}
-      </button>
+        <button type="submit" className="btn btn-primary" disabled={isLoading}>
+          {isLoading ? "Saving..." : "Save Changes"}
+        </button>
+      </div>
     </form>
   );
 }
