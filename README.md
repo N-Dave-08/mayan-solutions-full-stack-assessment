@@ -136,11 +136,7 @@ Add other environment values as needed for external integrations.
 - Run a Postgres container for local development (placeholders used for credentials):
 
 ```bash
-docker run -d --name mayan-postgres \
-	-e POSTGRES_PASSWORD=your_db_password \
-	-e POSTGRES_USER=your_db_user \
-	-e POSTGRES_DB=your_db_name \
-	-p 5432:5432 postgres:latest
+docker run -d --name mayan-postgres -e POSTGRES_PASSWORD=your_db_password -e POSTGRES_USER=your_db_user -e POSTGRES_DB=your_db_name -p 5432:5432 postgres:latest
 ```
 
 - Example `docker-compose.yml` for Postgres (optional):
