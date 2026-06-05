@@ -58,7 +58,7 @@ pnpm install
 
 ```env
 # Example .env
-DATABASE_URL=postgresql://user:password@localhost:5432/database
+DATABASE_URL="postgresql://user:password@localhost:5432/database"
 ```
 
 4. Generate the Prisma client and apply migrations:
