@@ -5,6 +5,7 @@ interface Props {
   tasks: Task[];
   onToggle: (id: string) => void;
   onDelete: (id: string) => void;
+  onEdit: (task: Task) => void;
   onStatusChange: (id: string, status: "active" | "inactive") => void;
 }
 
@@ -12,6 +13,7 @@ export default function TaskList({
   tasks,
   onToggle,
   onDelete,
+  onEdit,
   onStatusChange,
 }: Props) {
   return (
@@ -22,6 +24,7 @@ export default function TaskList({
           task={task}
           onToggle={onToggle}
           onDelete={onDelete}
+          onEdit={onEdit}
           onStatusChange={onStatusChange}
         />
       ))}

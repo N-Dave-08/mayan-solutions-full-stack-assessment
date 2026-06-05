@@ -6,11 +6,44 @@ export interface Task {
   isCompleted: boolean;
 }
 
-export const getTasks = async (search?: string): Promise<Task[]> => {
+export const createTask = async (data: {
+  title: string;
+  description?: string;
+  status?: "active" | "inactive";
+  isCompleted?: boolean;
+}) => {
+  const res = await fetch(`/api/tasks`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(data),
+  });
+
+  if (!res.ok) {
+    throw new Error("Failed to create task");
+  }
+
+  const result = await res.json();
+  return result;
+};
+
+export const getTasks = async (
+  search?: string,
+  filter?: "all" | "active" | "inactive" | "completed",
+): Promise<Task[]> => {
   const params = new URLSearchParams();
 
   if (search) {
     params.set("search", search);
+  }
+
+  if (filter === "active" || filter === "inactive") {
+    params.set("status", filter);
+  }
+
+  if (filter === "completed") {
+    params.set("completed", "true");
   }
 
   const res = await fetch(`/api/tasks?${params.toString()}`);
@@ -46,6 +79,32 @@ export const updateTaskStatus = async (
   if (!res.ok) throw new Error("Failed to update status");
 
   const result = await res.json();
+  return result.data;
+};
+
+export const updateTask = async (
+  id: string,
+  data: {
+    title?: string;
+    description?: string;
+    status?: "active" | "inactive";
+    isCompleted?: boolean;
+  },
+) => {
+  const res = await fetch(`/api/tasks/${id}`, {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(data),
+  });
+
+  if (!res.ok) {
+    throw new Error("Failed to update task");
+  }
+
+  const result = await res.json();
+
   return result.data;
 };
 

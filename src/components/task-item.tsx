@@ -5,6 +5,7 @@ interface Props {
   task: Task;
   onToggle: (id: string) => void;
   onDelete: (id: string) => void;
+  onEdit: (task: Task) => void;
   onStatusChange: (id: string, status: "active" | "inactive") => void;
 }
 
@@ -12,6 +13,7 @@ export default function TaskItem({
   task,
   onToggle,
   onDelete,
+  onEdit,
   onStatusChange,
 }: Props) {
   return (
@@ -45,11 +47,7 @@ export default function TaskItem({
 
       <p className="list-col-wrap">{task.description}</p>
 
-      <button className="btn btn-square btn-ghost">
-        <CirclePlus />
-      </button>
-
-      <button className="btn btn-square btn-ghost">
+      <button className="btn btn-square btn-ghost" onClick={() => onEdit(task)}>
         <SquarePen />
       </button>
 
