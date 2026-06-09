@@ -31,6 +31,7 @@ export const createTask = async (data: {
 export const getTasks = async (
   search?: string,
   filter?: "all" | "active" | "inactive" | "completed",
+  date?: string,
 ): Promise<Task[]> => {
   const params = new URLSearchParams();
 
@@ -44,6 +45,10 @@ export const getTasks = async (
 
   if (filter === "completed") {
     params.set("completed", "true");
+  }
+
+  if (date) {
+    params.set("date", date);
   }
 
   const res = await fetch(`/api/tasks?${params.toString()}`);

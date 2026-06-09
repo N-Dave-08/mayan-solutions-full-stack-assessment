@@ -19,11 +19,12 @@ import TaskList from "@/components/task-list";
 import TaskSearch from "@/components/task-search";
 import TaskFilters from "@/components/task-filters";
 import TaskModal from "@/components/task-modal";
+import TaskDateFilter from "@/components/task-date-filter";
 
 export default function Home() {
   const queryClient = useQueryClient();
 
-  const { filter, search } = useTaskStore();
+  const { filter, search, date } = useTaskStore();
 
   const [debouncedSearch, setDebouncedSearch] = useState("");
 
@@ -42,8 +43,8 @@ export default function Home() {
   }, [search]);
 
   const { data: tasks = [], isLoading } = useQuery({
-    queryKey: ["tasks", debouncedSearch, filter],
-    queryFn: () => getTasks(debouncedSearch, filter),
+    queryKey: ["tasks", debouncedSearch, filter, date],
+    queryFn: () => getTasks(debouncedSearch, filter, date),
   });
 
   const createMutation = useMutation({
@@ -130,6 +131,8 @@ export default function Home() {
         <TaskSearch />
 
         <TaskFilters />
+
+        <TaskDateFilter />
 
         <button
           className="btn btn-primary"

@@ -15,8 +15,19 @@ export async function GET(req: NextRequest) {
     const search = searchParams.get("search");
     const status = searchParams.get("status");
     const completed = searchParams.get("completed");
+    const date = searchParams.get("date");
 
     const validStatus = isValidStatus(status) ? status : undefined;
+
+    let startOfDay;
+    let endOfDay;
+
+    if (date) {
+      startOfDay = new Date(date);
+      endOfDay = new Date(date);
+
+      endOfDay.setHours(23, 59, 59, 999);
+    }
 
     const tasks = await db.task.findMany({
       where: {
@@ -35,6 +46,13 @@ export async function GET(req: NextRequest) {
           completed !== undefined && {
             isCompleted: completed === "true",
           }),
+
+        ...(date && {
+          createdAt: {
+            gte: startOfDay,
+            lte: endOfDay,
+          },
+        }),
       },
       orderBy: {
         createdAt: "desc",
