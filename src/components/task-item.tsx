@@ -1,4 +1,4 @@
-import { CirclePlus, SquarePen, Trash } from "lucide-react";
+import { SquarePen, Trash } from "lucide-react";
 import { Task } from "@/lib/api/tasks";
 
 interface Props {

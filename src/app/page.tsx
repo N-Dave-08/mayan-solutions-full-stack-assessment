@@ -1,13 +1,15 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState, useMemo } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import toast from "react-hot-toast";
 
 import {
   createTask,
   deleteTask,
   getTasks,
   Task,
+  TasksResponse,
   toggleTask,
   updateTask,
   updateTaskStatus,
@@ -27,14 +29,12 @@ export default function Home() {
   const { filter, search, date } = useTaskStore();
 
   const [debouncedSearch, setDebouncedSearch] = useState("");
-
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
-
   const [isCreating, setIsCreating] = useState(false);
-
   const [isModalOpen, setIsModalOpen] = useState(false);
-
   const [page, setPage] = useState(1);
+
+  const deleteTimeouts = useRef<Map<string, NodeJS.Timeout>>(new Map());
 
   // debounce search
   useEffect(() => {
@@ -51,11 +51,14 @@ export default function Home() {
     queryFn: () => getTasks(debouncedSearch, filter, date, page, 5),
   });
 
-  const tasks = data?.tasks ?? [];
+  // ✅ FIXED: stable derived state (removes useMemo warning)
+  const tasks = useMemo(() => {
+    return data?.tasks ?? [];
+  }, [data?.tasks]);
 
-  // helpers: reset page when filters change
   const resetPage = () => setPage(1);
 
+  // CREATE
   const createMutation = useMutation({
     mutationFn: createTask,
     onSuccess: () => {
@@ -66,6 +69,7 @@ export default function Home() {
     },
   });
 
+  // TOGGLE
   const toggleMutation = useMutation({
     mutationFn: toggleTask,
     onSuccess: () => {
@@ -73,6 +77,7 @@ export default function Home() {
     },
   });
 
+  // UPDATE
   const updateMutation = useMutation({
     mutationFn: ({
       id,
@@ -86,7 +91,6 @@ export default function Home() {
         isCompleted: boolean;
       };
     }) => updateTask(id, data),
-
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["tasks"] });
       setIsModalOpen(false);
@@ -95,13 +99,15 @@ export default function Home() {
     },
   });
 
-  const deleteMutation = useMutation({
+  // DELETE (server)
+  const deletePermanentMutation = useMutation({
     mutationFn: deleteTask,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["tasks"] });
     },
   });
 
+  // STATUS
   const statusMutation = useMutation({
     mutationFn: ({
       id,
@@ -110,7 +116,6 @@ export default function Home() {
       id: string;
       status: "active" | "inactive";
     }) => updateTaskStatus(id, status),
-
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["tasks"] });
     },
@@ -120,6 +125,68 @@ export default function Home() {
     setSelectedTask(task);
     setIsCreating(false);
     setIsModalOpen(true);
+  };
+
+  // 🔥 DELETE WITH UNDO (CLEAN)
+  const handleDelete = (id: string) => {
+    const originalTask = tasks.find((t) => t.id === id);
+    if (!originalTask) return;
+
+    const updated = tasks.filter((t) => t.id !== id);
+
+    queryClient.setQueryData<TasksResponse>(
+      ["tasks", debouncedSearch, filter, date, page],
+      (old) => {
+        if (!old) return old;
+
+        return {
+          ...old,
+          tasks: updated,
+        };
+      },
+    );
+
+    toast(
+      (t) => (
+        <div className="flex flex-col gap-2">
+          <span>Task deleted</span>
+
+          <button
+            className="btn btn-xs btn-primary"
+            onClick={() => {
+              const timeout = deleteTimeouts.current.get(id);
+              if (timeout) clearTimeout(timeout);
+
+              deleteTimeouts.current.delete(id);
+
+              queryClient.setQueryData<TasksResponse>(
+                ["tasks", debouncedSearch, filter, date, page],
+                (old) => {
+                  if (!old) return old;
+
+                  return {
+                    ...old,
+                    tasks: [originalTask, ...updated],
+                  };
+                },
+              );
+
+              toast.dismiss(t.id);
+            }}
+          >
+            Undo
+          </button>
+        </div>
+      ),
+      { duration: 5000 },
+    );
+
+    const timeout = setTimeout(() => {
+      deletePermanentMutation.mutate(id);
+      deleteTimeouts.current.delete(id);
+    }, 5000);
+
+    deleteTimeouts.current.set(id, timeout);
   };
 
   return (
@@ -156,7 +223,7 @@ export default function Home() {
             <TaskList
               tasks={tasks}
               onToggle={(id) => toggleMutation.mutate(id)}
-              onDelete={(id) => deleteMutation.mutate(id)}
+              onDelete={handleDelete}
               onEdit={handleEdit}
               onStatusChange={(id, status) =>
                 statusMutation.mutate({ id, status })
