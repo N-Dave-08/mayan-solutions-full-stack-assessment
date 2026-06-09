@@ -1,6 +1,10 @@
 import { useTaskStore } from "@/lib/store/useTaskStore";
 
-export default function TaskDateFilter() {
+interface Props {
+  onResetPage: () => void;
+}
+
+export default function TaskDateFilter({ onResetPage }: Props) {
   const date = useTaskStore((state) => state.date);
   const setDate = useTaskStore((state) => state.setDate);
 
@@ -9,7 +13,10 @@ export default function TaskDateFilter() {
       type="date"
       className="input input-bordered"
       value={date}
-      onChange={(e) => setDate(e.target.value)}
+      onChange={(e) => {
+        setDate(e.target.value);
+        onResetPage();
+      }}
     />
   );
 }

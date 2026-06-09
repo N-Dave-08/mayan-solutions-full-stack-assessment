@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/prisma";
 import { createTaskSchema } from "@/lib/validations/task";
+import { Prisma } from "@/generated/prisma/client";
 
 type TaskStatus = "active" | "inactive";
 
@@ -16,6 +17,10 @@ export async function GET(req: NextRequest) {
     const status = searchParams.get("status");
     const completed = searchParams.get("completed");
     const date = searchParams.get("date");
+    const page = Number(searchParams.get("page") ?? 1);
+    const limit = Number(searchParams.get("limit") ?? 5);
+
+    const skip = (page - 1) * limit;
 
     const validStatus = isValidStatus(status) ? status : undefined;
 
@@ -29,37 +34,52 @@ export async function GET(req: NextRequest) {
       endOfDay.setHours(23, 59, 59, 999);
     }
 
-    const tasks = await db.task.findMany({
-      where: {
-        ...(search && {
-          title: {
-            contains: search,
-            mode: "insensitive",
-          },
+    const where: Prisma.TaskWhereInput = {
+      ...(search && {
+        title: {
+          contains: search,
+          mode: "insensitive",
+        },
+      }),
+
+      ...(validStatus && {
+        status: validStatus,
+      }),
+
+      ...(completed !== null &&
+        completed !== undefined && {
+          isCompleted: completed === "true",
         }),
 
-        ...(validStatus && {
-          status: validStatus,
-        }),
+      ...(date && {
+        createdAt: {
+          gte: startOfDay,
+          lte: endOfDay,
+        },
+      }),
+    };
 
-        ...(completed !== null &&
-          completed !== undefined && {
-            isCompleted: completed === "true",
-          }),
+    const [tasks, total] = await Promise.all([
+      db.task.findMany({
+        where,
+        orderBy: {
+          createdAt: "desc",
+        },
+        skip,
+        take: limit,
+      }),
 
-        ...(date && {
-          createdAt: {
-            gte: startOfDay,
-            lte: endOfDay,
-          },
-        }),
-      },
-      orderBy: {
-        createdAt: "desc",
-      },
+      db.task.count({
+        where,
+      }),
+    ]);
+
+    return NextResponse.json({
+      tasks,
+      total,
+      page,
+      totalPage: Math.ceil(total / limit),
     });
-
-    return NextResponse.json(tasks);
   } catch (error) {
     console.error(error);
 

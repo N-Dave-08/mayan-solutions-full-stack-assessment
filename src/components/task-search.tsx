@@ -1,6 +1,10 @@
 import { useTaskStore } from "@/lib/store/useTaskStore";
 
-export default function TaskSearch() {
+interface Props {
+  onResetPage: () => void;
+}
+
+export default function TaskSearch({ onResetPage }: Props) {
   const { search, setSearch } = useTaskStore();
 
   return (
@@ -9,7 +13,10 @@ export default function TaskSearch() {
       placeholder="Search tasks..."
       className="input input-bordered"
       value={search}
-      onChange={(e) => setSearch(e.target.value)}
+      onChange={(e) => {
+        setSearch(e.target.value);
+        onResetPage();
+      }}
     />
   );
 }

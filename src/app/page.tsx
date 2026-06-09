@@ -34,6 +34,9 @@ export default function Home() {
 
   const [isModalOpen, setIsModalOpen] = useState(false);
 
+  const [page, setPage] = useState(1);
+
+  // debounce search
   useEffect(() => {
     const timeout = setTimeout(() => {
       setDebouncedSearch(search);
@@ -42,30 +45,31 @@ export default function Home() {
     return () => clearTimeout(timeout);
   }, [search]);
 
-  const { data: tasks = [], isLoading } = useQuery({
-    queryKey: ["tasks", debouncedSearch, filter, date],
-    queryFn: () => getTasks(debouncedSearch, filter, date),
+  // fetch tasks
+  const { data, isLoading } = useQuery({
+    queryKey: ["tasks", debouncedSearch, filter, date, page],
+    queryFn: () => getTasks(debouncedSearch, filter, date, page, 5),
   });
+
+  const tasks = data?.tasks ?? [];
+
+  // helpers: reset page when filters change
+  const resetPage = () => setPage(1);
 
   const createMutation = useMutation({
     mutationFn: createTask,
-
     onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: ["tasks"],
-      });
-
+      queryClient.invalidateQueries({ queryKey: ["tasks"] });
       setIsModalOpen(false);
       setSelectedTask(null);
+      setIsCreating(false);
     },
   });
 
   const toggleMutation = useMutation({
     mutationFn: toggleTask,
     onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: ["tasks"],
-      });
+      queryClient.invalidateQueries({ queryKey: ["tasks"] });
     },
   });
 
@@ -84,26 +88,17 @@ export default function Home() {
     }) => updateTask(id, data),
 
     onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: ["tasks"],
-      });
-
+      queryClient.invalidateQueries({ queryKey: ["tasks"] });
       setIsModalOpen(false);
       setSelectedTask(null);
+      setIsCreating(false);
     },
   });
-
-  const handleEdit = (task: Task) => {
-    setSelectedTask(task);
-    setIsModalOpen(true);
-  };
 
   const deleteMutation = useMutation({
     mutationFn: deleteTask,
     onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: ["tasks"],
-      });
+      queryClient.invalidateQueries({ queryKey: ["tasks"] });
     },
   });
 
@@ -117,22 +112,24 @@ export default function Home() {
     }) => updateTaskStatus(id, status),
 
     onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: ["tasks"],
-      });
+      queryClient.invalidateQueries({ queryKey: ["tasks"] });
     },
   });
+
+  const handleEdit = (task: Task) => {
+    setSelectedTask(task);
+    setIsCreating(false);
+    setIsModalOpen(true);
+  };
 
   return (
     <main>
       <div className="m-10 flex flex-col gap-4">
         <h2 className="font-semibold">Task Management</h2>
 
-        <TaskSearch />
-
-        <TaskFilters />
-
-        <TaskDateFilter />
+        <TaskSearch onResetPage={resetPage} />
+        <TaskFilters onResetPage={resetPage} />
+        <TaskDateFilter onResetPage={resetPage} />
 
         <button
           className="btn btn-primary"
@@ -144,6 +141,7 @@ export default function Home() {
               status: "active",
               isCompleted: false,
             });
+
             setIsCreating(true);
             setIsModalOpen(true);
           }}
@@ -154,15 +152,41 @@ export default function Home() {
         {isLoading ? (
           <p className="opacity-60">Loading tasks...</p>
         ) : (
-          <TaskList
-            tasks={tasks}
-            onToggle={(id) => toggleMutation.mutate(id)}
-            onDelete={(id) => deleteMutation.mutate(id)}
-            onEdit={handleEdit}
-            onStatusChange={(id, status) =>
-              statusMutation.mutate({ id, status })
-            }
-          />
+          <>
+            <TaskList
+              tasks={tasks}
+              onToggle={(id) => toggleMutation.mutate(id)}
+              onDelete={(id) => deleteMutation.mutate(id)}
+              onEdit={handleEdit}
+              onStatusChange={(id, status) =>
+                statusMutation.mutate({ id, status })
+              }
+            />
+
+            {data && data.totalPage > 1 && (
+              <div className="flex items-center gap-3">
+                <button
+                  className="btn btn-sm"
+                  disabled={page === 1}
+                  onClick={() => setPage((prev) => prev - 1)}
+                >
+                  Previous
+                </button>
+
+                <span>
+                  Page {data.page} of {data.totalPage}
+                </span>
+
+                <button
+                  className="btn btn-sm"
+                  disabled={page === data.totalPage}
+                  onClick={() => setPage((prev) => prev + 1)}
+                >
+                  Next
+                </button>
+              </div>
+            )}
+          </>
         )}
 
         <TaskModal
@@ -171,6 +195,7 @@ export default function Home() {
           onClose={() => {
             setIsModalOpen(false);
             setSelectedTask(null);
+            setIsCreating(false);
           }}
           isLoading={updateMutation.isPending || createMutation.isPending}
           onSubmit={(data) => {

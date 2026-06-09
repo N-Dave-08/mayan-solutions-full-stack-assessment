@@ -6,6 +6,13 @@ export interface Task {
   isCompleted: boolean;
 }
 
+export interface TasksResponse {
+  tasks: Task[];
+  total: number;
+  page: number;
+  totalPage: number;
+}
+
 export const createTask = async (data: {
   title: string;
   description?: string;
@@ -24,15 +31,16 @@ export const createTask = async (data: {
     throw new Error("Failed to create task");
   }
 
-  const result = await res.json();
-  return result;
+  return res.json();
 };
 
 export const getTasks = async (
   search?: string,
   filter?: "all" | "active" | "inactive" | "completed",
   date?: string,
-): Promise<Task[]> => {
+  page: number = 1,
+  limit: number = 5,
+): Promise<TasksResponse> => {
   const params = new URLSearchParams();
 
   if (search) {
@@ -51,6 +59,9 @@ export const getTasks = async (
     params.set("date", date);
   }
 
+  params.set("page", String(page));
+  params.set("limit", String(limit));
+
   const res = await fetch(`/api/tasks?${params.toString()}`);
 
   if (!res.ok) {
@@ -68,6 +79,7 @@ export const toggleTask = async (id: string) => {
   if (!res.ok) throw new Error("Failed to toggle task");
 
   const result = await res.json();
+
   return result.data;
 };
 
@@ -77,13 +89,16 @@ export const updateTaskStatus = async (
 ) => {
   const res = await fetch(`/api/tasks/${id}`, {
     method: "PATCH",
-    headers: { "Content-Type": "application/json" },
+    headers: {
+      "Content-Type": "application/json",
+    },
     body: JSON.stringify({ status }),
   });
 
   if (!res.ok) throw new Error("Failed to update status");
 
   const result = await res.json();
+
   return result.data;
 };
 
@@ -118,7 +133,9 @@ export const deleteTask = async (id: string) => {
     method: "DELETE",
   });
 
-  if (!res.ok) throw new Error("Failed to delete task");
+  if (!res.ok) {
+    throw new Error("Failed to delete task");
+  }
 
   return res.json();
 };
